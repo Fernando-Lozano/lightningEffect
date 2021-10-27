@@ -1,27 +1,45 @@
 let canvas = document.getElementById("lightningJS");
 let ctx = canvas.getContext("2d");
 let dpr = window.devicePixelRatio;
-canvas.width = canvas.width * dpr;
-canvas.height = canvas.height * dpr;
 
+// ------- fix blur on canvas -------
+let dpi = window.devicePixelRatio;
+function fix_dpi() {
+    //get CSS height
+    //the + prefix casts it to an integer
+    //the slice method gets rid of "px"
+    let style_height = +getComputedStyle(canvas).getPropertyValue("height").slice(0, -2);
+    //get CSS width
+    let style_width = +getComputedStyle(canvas).getPropertyValue("width").slice(0, -2);
+    //scale the canvas
+    canvas.setAttribute('height', style_height * dpi);
+    canvas.setAttribute('width', style_width * dpi);
+}
+fix_dpi();
+
+// ------- parameters -------
 // adjust these variables as needed
 let params = {
+    frequency: 0.08, // between 0 and 1: frequency of lightning strikes
+    generalDirection: 0.5, // between 0 and 1: which general direction the lightning will go
     lengthRoughness: { // length of lightning segments
-        min: 10,
-        max: 30
-    },
-    angleRoughness: { // in degrees
         min: 20,
         max: 60
     },
-    thickness: { // keep numbers small
-        min: 1,
-        max: 3
+    angleRoughness: { // between 0 and 90: amount of angle in each lightning segment
+        min: 30,
+        max: 80
     },
-    slower: 7 // make higher to slow lightning down
+    thickness: { // keep numbers small
+        min: 2,
+        max: 8
+    },
+    split: 0.03, // between 0 and 1: odds of the lightning strike splitting
+    color: "white", // lightning color
+    shadowBlur: 10,
+    shadowColor: "rgb(142, 177, 255)",
 }
-
-let { lengthRoughness, angleRoughness, thickness, slower } = params;
+let { origin, generalDirection, lengthRoughness, angleRoughness, thickness, slower } = params;
 
 function getRandomIntInclusive(min, max) {
     min = Math.ceil(min);
@@ -29,82 +47,63 @@ function getRandomIntInclusive(min, max) {
     return Math.floor(Math.random() * (max - min + 1) + min); //The maximum is inclusive and the minimum is inclusive
 }
 
-function getBolt() {
+// gets segments
+function getBolt(fromX, fromY) {
     let length = getRandomIntInclusive(lengthRoughness.min, lengthRoughness.max);
     let angleDeg = getRandomIntInclusive(angleRoughness.min, angleRoughness.max);
 
     let coordinates = {};
     coordinates.x = Math.round(Math.cos(angleDeg * Math.PI / 180) * length);
-    coordinates.y = Math.round(Math.sqrt(length ** 2 - coordinates.x ** 2));
-    Math.round(Math.random()) ? "" : coordinates.x = -coordinates.x;
+    coordinates.y = Math.round(Math.sqrt(length ** 2 - coordinates.x ** 2)) + fromY;
+    Math.random() < generalDirection ? coordinates.x = -coordinates.x : "";
+    coordinates.x += fromX;
     return coordinates;
 }
 
-let lightning = [];
-function createLightning() {
-    let marker = 0;
-    while (marker < canvas.height) {
-        let bolt = getBolt();
-        marker += bolt.y;
-        lightning.push(bolt);
-    }
-}
-
-function shuffleLightning(array) {
-    let currentIndex = array.length, randomIndex;
-
-    // While there remain elements to shuffle...
-    while (currentIndex != 0) {
-
-        // Pick a remaining element...
-        randomIndex = Math.floor(Math.random() * currentIndex);
-        currentIndex--;
-
-        // And swap it with the current element.
-        [array[currentIndex], array[randomIndex]] = [
-            array[randomIndex], array[currentIndex]];
-    }
-
-    return array;
-}
-
-function drawLightning() {
-    ctx.lineWidth = getRandomIntInclusive(thickness.min, thickness.max);
-    let x = canvas.width / 2;
-    let y = 0;
+// uses recursion to split up the lightning strike
+function drawLightning(x, y) {
     ctx.moveTo(x, y);
-    let blurry = false;
-    (Math.floor(Math.random() * 5) !== 0) ? "" : blurry = true;
-    for (let j = 0; j < lightning.length; j++) {
-        x += lightning[j].x;
-        y += lightning[j].y;
+    let bolt;
+    while (y < canvas.height) {
+        if (Math.random() < params.split) {
+            drawLightning(x, y);
+            ctx.moveTo(x, y);
+        }
+        bolt = getBolt(x, y);
+        x = bolt.x;
+        y = bolt.y;
         ctx.lineTo(x, y);
-        if (blurry) ctx.stroke();
     }
-    if (!blurry) {
-        ctx.stroke();
-        canvas.style.opacity = 1;
-    }
-    else {
-        canvas.style.opacity = 0.9;
-    }
+    ctx.stroke();
+    return;
+}
+  
+function init() {
+    ctx.strokeStyle = params.color;
+    ctx.shadowBlur = params.shadowBlur;
+    ctx.shadowColor = params.shadowColor;
 }
 
-let counter = 1;
-function draw() {
-    if (counter % slower === 0) {
-        ctx.clearRect(0, 0, canvas.width, canvas.height);
-        ctx.strokeStyle = "white";
-        ctx.shadowBlur = 10;
-        ctx.shadowColor = "rgb(255, 255, 110)";
-    
-        ctx.beginPath();
-        drawLightning();
-        shuffleLightning(lightning);
-        counter = 1;
-    }
-    counter ++;
-    requestAnimationFrame(draw);
+function delay() {
+    return new Promise((res, err) => {
+        setTimeout(() => {
+            res();
+        }, 200);
+    });
 }
-createLightning();
-draw();
+async function loop() {
+    if (Math.random() < params.frequency) {
+        ctx.lineWidth = getRandomIntInclusive(thickness.min, thickness.max);
+        if (ctx.lineWidth === thickness.max) {
+            canvas.style.opacity = 0.9;
+        }
+        ctx.beginPath();
+        drawLightning(getRandomIntInclusive(0, canvas.width), 0);
+    }
+    await delay();
+    canvas.style.opacity = 1;
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+    requestAnimationFrame(loop);
+}
+init();
+loop();
