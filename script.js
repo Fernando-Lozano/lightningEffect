@@ -48,28 +48,28 @@ function getRandomIntInclusive(min, max) {
 }
 
 // gets segments
-function getBolt(fromX, fromY) {
+function getBolt(fromX, fromY, direction) {
     let length = getRandomIntInclusive(lengthRoughness.min, lengthRoughness.max);
     let angleDeg = getRandomIntInclusive(angleRoughness.min, angleRoughness.max);
 
     let coordinates = {};
     coordinates.x = Math.round(Math.cos(angleDeg * Math.PI / 180) * length);
     coordinates.y = Math.round(Math.sqrt(length ** 2 - coordinates.x ** 2)) + fromY;
-    Math.random() < generalDirection ? coordinates.x = -coordinates.x : "";
+    Math.random() < direction ? coordinates.x = -coordinates.x : "";
     coordinates.x += fromX;
     return coordinates;
 }
 
 // uses recursion to split up the lightning strike
-function drawLightning(x, y) {
+function drawLightning(x, y, direction=generalDirection) {
     ctx.moveTo(x, y);
     let bolt;
     while (y < canvas.height) {
         if (Math.random() < params.split) {
-            drawLightning(x, y);
+            drawLightning(x, y, Math.random());
             ctx.moveTo(x, y);
         }
-        bolt = getBolt(x, y);
+        bolt = getBolt(x, y, direction);
         x = bolt.x;
         y = bolt.y;
         ctx.lineTo(x, y);
