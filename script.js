@@ -4,16 +4,6 @@ let dpi = window.devicePixelRatio;
 
 // ------- fix blur on canvas -------
 function fix_dpi() {
-    // sets the desired width and height
-    //get CSS height
-    //the + prefix casts it to an integer
-    //the slice method gets rid of "px"
-    // let style_height = +getComputedStyle(canvas).getPropertyValue("height").slice(0, -2);
-    //get CSS width
-    // let style_width = +getComputedStyle(canvas).getPropertyValue("width").slice(0, -2);
-    //scale the canvas
-    // canvas.setAttribute('height', style_height * dpi);
-    // canvas.setAttribute('width', style_width * dpi);
     canvas.width = canvas.offsetWidth * dpi;
     canvas.height = canvas.offsetHeight * dpi;
 }
@@ -23,7 +13,10 @@ fix_dpi();
 // adjust these variables as needed
 let params = {
     frequency: 0.1, // between 0 and 1: frequency of lightning strikes
-    generalDirection: 0.5, // between 0 and 1: which general direction the lightning will go
+    generalDirection: { // general direction lightning will travel
+        random: true, // true for random directions
+        value: 0.2 // between 0 and 1: which general direction the lightning will go
+    },
     lengthRoughness: { // length of lightning segments
         min: 20,
         max: 60
@@ -57,6 +50,7 @@ function getBolt(fromX, fromY, direction) {
     let coordinates = {};
     coordinates.x = Math.round(Math.cos(angleDeg * Math.PI / 180) * length);
     coordinates.y = Math.round(Math.sqrt(length ** 2 - coordinates.x ** 2)) + fromY;
+    direction.random ? direction = Math.random() : direction = direction.value;
     Math.random() < direction ? coordinates.x = -coordinates.x : "";
     coordinates.x += fromX;
     return coordinates;
@@ -68,14 +62,13 @@ function drawLightning(x, y, direction=generalDirection) {
     let bolt;
     while (y < canvas.height) {
         if (Math.random() < params.split) {
-            drawLightning(x, y, Math.random());
+            drawLightning(x, y, { random: false, value: Math.random() }); // makes the split lightning branch out more
             ctx.moveTo(x, y);
         }
         bolt = getBolt(x, y, direction);
         x = bolt.x;
         y = bolt.y;
         ctx.lineTo(x, y);
-        console.log(x, y)
     }
     ctx.stroke();
     return;
