@@ -1,26 +1,28 @@
 let canvas = document.getElementById("lightningJS");
 let ctx = canvas.getContext("2d");
-let dpr = window.devicePixelRatio;
+let dpi = window.devicePixelRatio;
 
 // ------- fix blur on canvas -------
-let dpi = window.devicePixelRatio;
 function fix_dpi() {
+    // sets the desired width and height
     //get CSS height
     //the + prefix casts it to an integer
     //the slice method gets rid of "px"
-    let style_height = +getComputedStyle(canvas).getPropertyValue("height").slice(0, -2);
+    // let style_height = +getComputedStyle(canvas).getPropertyValue("height").slice(0, -2);
     //get CSS width
-    let style_width = +getComputedStyle(canvas).getPropertyValue("width").slice(0, -2);
+    // let style_width = +getComputedStyle(canvas).getPropertyValue("width").slice(0, -2);
     //scale the canvas
-    canvas.setAttribute('height', style_height * dpi);
-    canvas.setAttribute('width', style_width * dpi);
+    // canvas.setAttribute('height', style_height * dpi);
+    // canvas.setAttribute('width', style_width * dpi);
+    canvas.width = canvas.offsetWidth * dpi;
+    canvas.height = canvas.offsetHeight * dpi;
 }
 fix_dpi();
 
 // ------- parameters -------
 // adjust these variables as needed
 let params = {
-    frequency: 0.08, // between 0 and 1: frequency of lightning strikes
+    frequency: 0.1, // between 0 and 1: frequency of lightning strikes
     generalDirection: 0.5, // between 0 and 1: which general direction the lightning will go
     lengthRoughness: { // length of lightning segments
         min: 20,
@@ -73,6 +75,7 @@ function drawLightning(x, y, direction=generalDirection) {
         x = bolt.x;
         y = bolt.y;
         ctx.lineTo(x, y);
+        console.log(x, y)
     }
     ctx.stroke();
     return;
@@ -107,3 +110,8 @@ async function loop() {
 }
 init();
 loop();
+
+window.addEventListener("resize", () => {
+    fix_dpi();
+    init();
+});
