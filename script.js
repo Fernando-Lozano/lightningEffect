@@ -1,6 +1,6 @@
-let canvas = document.getElementById("lightningJS");
-let ctx = canvas.getContext("2d");
-let dpi = window.devicePixelRatio;
+const canvas = document.getElementById("lightningJS");
+const ctx = canvas.getContext("2d");
+const dpi = window.devicePixelRatio;
 
 // ------- fix blur on canvas -------
 function fix_dpi() {
